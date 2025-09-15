@@ -1,9 +1,35 @@
 <?php
 include_once("controller/cBanTin.php");
 $cBanTin = new cBanTin();
-$newsList = $cBanTin->cGetAllTinTuc();
-?>
+if (isset($_POST['postNews'])) {
+    $p = $cBanTin->cAddTinTuc($_SESSION['uid'], $_POST['newsContent'], $_FILES['newsImage'], $_FILES['newsVideo']);
+    switch ($p) {
+        case '1':
+            echo '<script>alert("Lỗi: Bạn phải nhập nội dung hoặc chọn file để đăng!")</script>';
+            break;
+        case '2':
+            echo '<script>alert("Lỗi: Kích thước ảnh quá lớn (tối đa 2MB)!")</script>>';
+            break;
+        case '3':
+            echo '<script>alert("Lỗi: Kích thước video quá lớn (tối đa 50MB)!")</script>';
+            break;
+        case '4':
+            echo '<script>alert("Lỗi: Định dạng ảnh không được hỗ trợ (chỉ chấp nhận JPG/JPEG)!")</script>';
+            break;
+        case '5':
+            echo '<script>alert("Lỗi: Định dạng video không được hỗ trợ (chỉ chấp nhận MP4/MKV)!")</script>';
+            break;
+        case '6':
+            echo '<script>alert("Đăng bản tin thành công!")</script>';
+            break;
+        default:
+            echo '<script>alert("Đã xảy ra lỗi không xác định!")</script>';
+            break;
+    }
+    header("refresh:0.5;url=home.php?page=bantin");
+}
 
+?>
 <!-- Bootstrap 5 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
@@ -141,7 +167,7 @@ $newsList = $cBanTin->cGetAllTinTuc();
                                 <div class="post-input flex-fill"
                                     data-bs-toggle="modal"
                                     data-bs-target="#postModal"
-                                    role="button">
+                                    role="button" onclick="resetModal()">
                                     <?= htmlspecialchars($_SESSION['email']) ?> ơi, bạn đang nghĩ gì thế?
                                 </div>
                             <?php else: ?>
@@ -155,7 +181,7 @@ $newsList = $cBanTin->cGetAllTinTuc();
 
                         <?php if (isset($_SESSION['uid'])): ?>
                             <hr class="my-3">
-                            <div class="row text-center g-2" style="font-size: 14px;">
+                            <div class="row text-center g-2" style="font-size: 14px;" onclick="resetModal()">
                                 <div class="col-4">
                                     <button class="btn btn-light w-100 py-2"
                                         data-bs-toggle="modal"
@@ -200,7 +226,7 @@ $newsList = $cBanTin->cGetAllTinTuc();
                     <h5 class="modal-title fw-bold" id="postModalLabel">
                         <i class="bi bi-pencil-square me-2"></i>Tạo bản tin
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="resetModal()"></button>
                 </div>
 
                 <div class="modal-body">
@@ -224,8 +250,7 @@ $newsList = $cBanTin->cGetAllTinTuc();
                         <textarea name="newsContent"
                             class="form-control border-0 fs-5"
                             style="resize: none; min-height: 120px;"
-                            placeholder="Bạn đang nghĩ gì?">
-                        </textarea>
+                            placeholder="Bạn đang nghĩ gì?"></textarea>
                     </div>
 
                     <!-- Media Upload Section -->
@@ -241,21 +266,43 @@ $newsList = $cBanTin->cGetAllTinTuc();
                             <input type="file"
                                 id="imageInput"
                                 name="newsImage"
-                                class="d-none"
-                                onchange="previewFile(this, 'image')">
+                                class="d-none" onchange="showFile(this)">
                             <label class="btn btn-outline-danger btn-sm flex-fill" for="videoInput">
                                 <i class="bi bi-camera-video me-2"></i>Video
                             </label>
                             <input type="file"
                                 id="videoInput"
                                 name="newsVideo"
-                                class="d-none"
-                                onchange="previewFile(this, 'video')">
+                                class="d-none">
                             <button type="button" class="btn btn-outline-warning btn-sm flex-fill">
                                 <i class="bi bi-emoji-smile me-2"></i>Cảm xúc
                             </button>
                         </div>
                     </div>
+                    <!-- Hiển thị hình ảnh -->
+                    <div id="previewSection" class="mb-3">
+                        <div class="position-relative d-inline-block">
+                            <img src="" alt="" id="img-preview" style="max-width: 200px; display: none;">
+                            <!-- Nút xóa ảnh -->
+                            <button type="button"
+                                class="btn btn-secondary btn-sm position-absolute top-0 end-0"
+                                style="display: none; width: 25px; height: 25px; padding: 0; border-radius: 50%; font-size: 12px;"
+                                id="remove-img-btn"
+                                onclick="clearFile()">×</button>
+                        </div>
+                        <!-- Preview Video -->
+                        <div class="position-relative d-inline-block" id="videoPreviewContainer" style="display: none;">
+                            <video id="video-preview" style="max-width: 300px; border-radius: 8px;" controls>
+                                <source src="" type="video/mp4">
+                                Trình duyệt của bạn không hỗ trợ video.
+                            </video>
+                            <button type="button"
+                                class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1"
+                                style="width: 25px; height: 25px; padding: 0; border-radius: 50%; font-size: 12px;"
+                                onclick="clearVideo()">×</button>
+                        </div>
+                    </div>
+
                 </div>
 
                 <div class="modal-footer border-top">
@@ -263,37 +310,49 @@ $newsList = $cBanTin->cGetAllTinTuc();
                         <i class="bi bi-send me-2"></i>Đăng bản tin
                     </button>
                 </div>
+
             </form>
-            <?php
-            include_once("controller/cBanTin.php");
-            $cBanTin = new cBanTin();
-            if (isset($_POST['postNews'])) {
-                $p = $cBanTin->cAddTinTuc($_SESSION['uid'], $_POST['newsContent'], $_FILES['newsImage'], $_FILES['newsVideo']);
-                switch ($p) {
-                    case '1':
-                        echo '<div class="alert alert-danger">Lỗi: Bạn phải nhập nội dung hoặc chọn file để đăng!</div>';
-                        break;
-                    case '2':
-                        echo '<div class="alert alert-danger">Lỗi: Kích thước ảnh quá lớn (tối đa 2MB)!</div>';
-                        break;
-                    case '3':
-                        echo '<div class="alert alert-danger">Lỗi: Kích thước video quá lớn (tối đa 10MB)!</div>';
-                        break;
-                    case '4':
-                        echo '<div class="alert alert-danger">Lỗi: Định dạng ảnh không được hỗ trợ (chỉ chấp nhận JPG/JPEG)!</div>';
-                        break;
-                    case '5':
-                        echo '<div class="alert alert-danger">Lỗi: Định dạng video không được hỗ trợ (chỉ chấp nhận MP4/MKV)!</div>';
-                        break;
-                    case '6':
-                        echo '<div class="alert alert-success">Đăng bản tin thành công!</div>';
-                        break;
-                    default:
-                        echo '<div class="alert alert-info">Đã xảy ra lỗi không xác định!</div>';
-                        break;
-                }
-            }
-            ?>
         </div>
     </div>
+    <script>
+        function resetModal() {
+            // Reset form đúng cách
+            const form = document.querySelector('#postModal form');
+            if (form) form.reset();
+            // Ẩn ảnh preview
+            document.getElementById("img-preview").style.display = "none";
+            document.getElementById("remove-img-btn").style.display = "none";
+            document.getElementById("img-preview").src = "";
+            document.getElementById("imageInput").value = "";
+            document.getElementById("videoInput").value = "";
+            document.getElementsByClassName("form-control").value = "";
+        }
+
+        function showFile(input) {
+            const file = input.files[0];
+            if (file) {
+                const preview = document.getElementById("img-preview");
+                const removeBtn = document.getElementById("remove-img-btn");
+                preview.src = URL.createObjectURL(file); // tạo đường dẫn tạm
+                preview.style.display = "block";
+                preview.style.borderRadius = "8px"; // Thêm border radius cho đẹp
+                preview.style.marginTop = "10px";
+
+                if (removeBtn) {
+                    removeBtn.style.display = "block";
+                }
+            }
+        }
+
+        function clearFile(input) {
+            const preview = document.getElementById("img-preview");
+            const removeBtn = document.getElementById("remove-img-btn");
+            preview.style.display = "none";
+            preview.src = "";
+            document.getElementById("imageInput").value = "";
+            if (removeBtn) {
+                removeBtn.style.display = "none";
+            }
+        }
+    </script>
 </div>
