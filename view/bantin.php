@@ -20,6 +20,9 @@ if (isset($_POST['postNews'])) {
             echo '<script>alert("Lỗi: Định dạng video không được hỗ trợ (chỉ chấp nhận MP4/MKV)!")</script>';
             break;
         case '6':
+            echo '<script>alert("Lỗi: Ảnh không phù hợp!")</script>';
+            break;
+        case '7':
             echo '<script>alert("Đăng bản tin thành công!")</script>';
             break;
         default:
@@ -289,17 +292,6 @@ if (isset($_POST['postNews'])) {
                                 style="display: none; width: 25px; height: 25px; padding: 0; border-radius: 50%; font-size: 12px;"
                                 id="remove-img-btn"
                                 onclick="clearFile()">×</button>
-                        </div>
-                        <!-- Preview Video -->
-                        <div class="position-relative d-inline-block" id="videoPreviewContainer" style="display: none;">
-                            <video id="video-preview" style="max-width: 300px; border-radius: 8px;" controls>
-                                <source src="" type="video/mp4">
-                                Trình duyệt của bạn không hỗ trợ video.
-                            </video>
-                            <button type="button"
-                                class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1"
-                                style="width: 25px; height: 25px; padding: 0; border-radius: 50%; font-size: 12px;"
-                                onclick="clearVideo()">×</button>
                         </div>
                     </div>
 

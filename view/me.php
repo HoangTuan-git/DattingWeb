@@ -306,7 +306,8 @@ if (!isset($_SESSION['uid'])) {
     $p = new mMe();
     $user = $p->GetUserById($_SESSION['uid']);
     $u = $user->fetch_assoc();
-    $src = 'img/' . $u['avatar'];
+    $avartar = $u['avatar'] ?? 'default.png';
+    $src = 'img/' .  $avartar;
     ?>
     <div class="container-fluid px-0">
         <!-- Profile Section -->
