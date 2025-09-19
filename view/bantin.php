@@ -2,7 +2,7 @@
 include_once("controller/cBanTin.php");
 $cBanTin = new cBanTin();
 if (isset($_POST['postNews'])) {
-    $p = $cBanTin->cAddTinTuc($_SESSION['uid'], $_POST['newsContent'], $_FILES['newsImage'], $_FILES['newsVideo']);
+    $p = $cBanTin->cAddTinTuc($_SESSION['uid'], $_POST['newsContent'], $_FILES['newsImages'], $_POST['privacy']);
     switch ($p) {
         case '1':
             echo '<script>alert("Lỗi: Bạn phải nhập nội dung hoặc chọn file để đăng!")</script>';
@@ -11,18 +11,12 @@ if (isset($_POST['postNews'])) {
             echo '<script>alert("Lỗi: Kích thước ảnh quá lớn (tối đa 2MB)!")</script>>';
             break;
         case '3':
-            echo '<script>alert("Lỗi: Kích thước video quá lớn (tối đa 50MB)!")</script>';
+            echo '<script>alert("Lỗi: Định dạng ảnh không được hỗ trợ (chỉ chấp nhận PNG/JPEG)!")</script>';
             break;
         case '4':
-            echo '<script>alert("Lỗi: Định dạng ảnh không được hỗ trợ (chỉ chấp nhận JPG/JPEG)!")</script>';
-            break;
-        case '5':
-            echo '<script>alert("Lỗi: Định dạng video không được hỗ trợ (chỉ chấp nhận MP4/MKV)!")</script>';
-            break;
-        case '6':
             echo '<script>alert("Lỗi: Ảnh không phù hợp!")</script>';
             break;
-        case '7':
+        case '5':
             echo '<script>alert("Đăng bản tin thành công!")</script>';
             break;
         default:
@@ -37,6 +31,8 @@ if (isset($_POST['postNews'])) {
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- THÊM EMOJI PICKER CDN -->
+<script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
 
 <style>
     :root {
@@ -116,22 +112,40 @@ if (isset($_POST['postNews'])) {
         color: white;
     }
 
+    #privacySelect {
+        border: none;
+        background-color: #e0dce2ff;
+        color: #1f2020ff;
+        padding: 0;
+        font-size: 14px;
+        border-radius: 20px;
+    }
+
+    #emojiPickerContainer {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        max-height: 350px;
+        background: white;
+    }
+
+    emoji-picker {
+        width: 100%;
+        height: 350px;
+        --num-columns: 8;
+        --emoji-size: 1.5rem;
+        --background: #ffffff;
+        --border-color: transparent;
+        --outline-color: #667eea;
+        --category-emoji-size: 1.25rem;
+        border: none;
+    }
+
     /* Responsive Layout cho Desktop */
     @media (min-width: 1200px) {
         .feed-container {
             max-width: 800px;
-        }
-    }
-
-    @media (min-width: 992px) and (max-width: 1199.98px) {
-        .feed-container {
-            max-width: 700px;
-        }
-    }
-
-    @media (min-width: 768px) and (max-width: 991.98px) {
-        .feed-container {
-            max-width: 600px;
         }
     }
 
@@ -143,6 +157,16 @@ if (isset($_POST['postNews'])) {
 
         .main-container {
             padding: 10px 0;
+        }
+
+        emoji-picker {
+            --num-columns: 6;
+            --emoji-size: 1.25rem;
+            height: 280px;
+        }
+
+        #emojiPickerContainer {
+            max-height: 280px;
         }
     }
 </style>
@@ -185,7 +209,7 @@ if (isset($_POST['postNews'])) {
                         <?php if (isset($_SESSION['uid'])): ?>
                             <hr class="my-3">
                             <div class="row text-center g-2" style="font-size: 14px;" onclick="resetModal()">
-                                <div class="col-4">
+                                <div class="col-6">
                                     <button class="btn btn-light w-100 py-2"
                                         data-bs-toggle="modal"
                                         data-bs-target="#postModal">
@@ -193,15 +217,7 @@ if (isset($_POST['postNews'])) {
                                         <span>Ảnh</span>
                                     </button>
                                 </div>
-                                <div class="col-4">
-                                    <button class="btn btn-light w-100 py-2"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#postModal">
-                                        <i class="bi bi-camera-video text-danger me-2"></i>
-                                        <span>Video</span>
-                                    </button>
-                                </div>
-                                <div class="col-4">
+                                <div class="col-6">
                                     <button class="btn btn-light w-100 py-2"
                                         data-bs-toggle="modal"
                                         data-bs-target="#postModal">
@@ -243,7 +259,10 @@ if (isset($_POST['postNews'])) {
                                 <?= isset($_SESSION['uid']) ? htmlspecialchars($_SESSION['email']) : 'Người dùng' ?>
                             </h6>
                             <small class="text-muted">
-                                <i class="bi bi-globe me-1"></i>Công khai
+                                <select name="privacy" id="privacySelect">
+                                    <option value="public">🌍 Công khai</option>
+                                    <option value="friends">👫 Bạn bè</option>
+                                </select>
                             </small>
                         </div>
                     </div>
@@ -268,31 +287,21 @@ if (isset($_POST['postNews'])) {
                             </label>
                             <input type="file"
                                 id="imageInput"
-                                name="newsImage"
-                                class="d-none" onchange="showFile(this)">
-                            <label class="btn btn-outline-danger btn-sm flex-fill" for="videoInput">
-                                <i class="bi bi-camera-video me-2"></i>Video
-                            </label>
-                            <input type="file"
-                                id="videoInput"
-                                name="newsVideo"
-                                class="d-none">
-                            <button type="button" class="btn btn-outline-warning btn-sm flex-fill">
+                                name="newsImages[]"
+                                class="d-none" multiple onchange="showFile(this)">
+                            <button type="button" class="btn btn-outline-warning btn-sm flex-fill"
+                                onclick="toggleEmojiPicker()">
                                 <i class="bi bi-emoji-smile me-2"></i>Cảm xúc
                             </button>
+                        </div>
+                        <!-- THÊM EMOJI PICKER CONTAINER -->
+                        <div id="emojiPickerContainer" class="mb-3" style="display: none;">
+                            <emoji-picker></emoji-picker>
                         </div>
                     </div>
                     <!-- Hiển thị hình ảnh -->
                     <div id="previewSection" class="mb-3">
-                        <div class="position-relative d-inline-block">
-                            <img src="" alt="" id="img-preview" style="max-width: 200px; display: none;">
-                            <!-- Nút xóa ảnh -->
-                            <button type="button"
-                                class="btn btn-secondary btn-sm position-absolute top-0 end-0"
-                                style="display: none; width: 25px; height: 25px; padding: 0; border-radius: 50%; font-size: 12px;"
-                                id="remove-img-btn"
-                                onclick="clearFile()">×</button>
-                        </div>
+                        <div id="img-preview-list" class="d-flex gap-2 flex-wrap"></div>
                     </div>
 
                 </div>
@@ -311,40 +320,142 @@ if (isset($_POST['postNews'])) {
             // Reset form đúng cách
             const form = document.querySelector('#postModal form');
             if (form) form.reset();
+
             // Ẩn ảnh preview
-            document.getElementById("img-preview").style.display = "none";
-            document.getElementById("remove-img-btn").style.display = "none";
-            document.getElementById("img-preview").src = "";
-            document.getElementById("imageInput").value = "";
-            document.getElementById("videoInput").value = "";
-            document.getElementsByClassName("form-control").value = "";
+            document.getElementById("img-preview-list").style.display = "none";
+            document.getElementById("img-preview-list").innerHTML = "";
+
+            // Ẩn emoji picker
+            document.getElementById("emojiPickerContainer").style.display = "none";
+
+            // Clear textarea
+            const textarea = document.querySelector('textarea[name="newsContent"]');
+            if (textarea) textarea.value = "";
         }
 
         function showFile(input) {
-            const file = input.files[0];
-            if (file) {
-                const preview = document.getElementById("img-preview");
-                const removeBtn = document.getElementById("remove-img-btn");
-                preview.src = URL.createObjectURL(file); // tạo đường dẫn tạm
-                preview.style.display = "block";
-                preview.style.borderRadius = "8px"; // Thêm border radius cho đẹp
-                preview.style.marginTop = "10px";
+            const validImageTypes = ['image/jpeg', 'image/png']
+            const files = input.files;
+            const previewList = document.getElementById("img-preview-list");
+            previewList.innerHTML = ""; // Clear previous previews
+            for (i = 0; i < files.length; i++) {
+                const file = files[i];
+                const isValidType = file && validImageTypes.includes(file.type);
+                const fileName = file.name;
 
-                if (removeBtn) {
-                    removeBtn.style.display = "block";
+                // Tạo nút xóa cho từng ảnh
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "btn btn-secondary btn-sm position-absolute";
+                removeBtn.style.width = "25px";
+                removeBtn.style.height = "25px";
+                removeBtn.style.padding = "0";
+                removeBtn.style.borderRadius = "50%";
+                removeBtn.style.fontSize = "12px";
+                removeBtn.style.top = "0";
+                removeBtn.style.right = "0";
+                removeBtn.textContent = "×";
+
+                // Tạo một div bọc để dễ căn chỉnh
+                const wrapper = document.createElement("div");
+                wrapper.className = "position-relative d-inline-block";
+                wrapper.style.display = "inline-block";
+
+                if (isValidType) {
+                    const img = document.createElement("img");
+                    img.src = URL.createObjectURL(file);
+                    img.style.maxWidth = "200px";
+                    img.style.borderRadius = "8px";
+                    img.style.marginTop = "10px";
+                    img.style.marginRight = "10px";
+                    img.alt = fileName;
+                    wrapper.appendChild(img);
+                    wrapper.appendChild(removeBtn);
+                } else {
+                    // Nếu không phải ảnh hợp lệ, hiển thị tên file
+                    const span = document.createElement("span");
+                    span.textContent = fileName + " ";
+                    span.style.marginRight = "28px";
+                    wrapper.appendChild(span);
+                    wrapper.appendChild(removeBtn);
                 }
+                // Khi bấm xóa sẽ bỏ ảnh này khỏi giao diện
+                removeBtn.onclick = function() {
+                    wrapper.remove();
+                };
+                previewList.appendChild(wrapper);
             }
         }
 
-        function clearFile(input) {
+        function clearFile() {
             const preview = document.getElementById("img-preview");
+            const fileName = document.getElementById("fileName");
             const removeBtn = document.getElementById("remove-img-btn");
+
+            fileName.textContent = "";
             preview.style.display = "none";
             preview.src = "";
             document.getElementById("imageInput").value = "";
+
             if (removeBtn) {
                 removeBtn.style.display = "none";
             }
         }
+
+        // HÀM TOGGLE EMOJI PICKER - ĐƠN GIẢN
+        function toggleEmojiPicker() {
+            const emojiContainer = document.getElementById("emojiPickerContainer");
+
+            // Nếu đang ẩn thì hiển thị, nếu đang hiển thị thì ẩn
+            if (emojiContainer.style.display === "none" || emojiContainer.style.display === "") {
+                emojiContainer.style.display = "block";
+            } else {
+                emojiContainer.style.display = "none";
+            }
+        }
+
+        // HÀM XỬ LÝ KHI CHỌN EMOJI - ĐƠN GIẢN
+        function handleEmojiPicker() {
+            const emojiPicker = document.querySelector('emoji-picker');
+            const textarea = document.querySelector('textarea[name="newsContent"]');
+
+            // Kiểm tra cả 2 element có tồn tại không
+            if (!emojiPicker || !textarea) {
+                return;
+            }
+
+            // Lắng nghe sự kiện click emoji
+            emojiPicker.addEventListener('emoji-click', function(event) {
+                // Lấy emoji được chọn
+                const selectedEmoji = event.detail.unicode;
+
+                // Lấy vị trí con trỏ hiện tại trong textarea
+                const cursorPosition = textarea.selectionStart;
+
+                // Lấy text trước và sau vị trí con trỏ
+                const textBefore = textarea.value.substring(0, cursorPosition);
+                const textAfter = textarea.value.substring(cursorPosition);
+
+                // Chèn emoji vào vị trí con trỏ
+                textarea.value = textBefore + selectedEmoji + textAfter;
+
+                // Đặt con trỏ sau emoji vừa chèn
+                const newPosition = cursorPosition + selectedEmoji.length;
+                textarea.selectionStart = newPosition;
+                textarea.selectionEnd = newPosition;
+
+                // Focus lại textarea
+                textarea.focus();
+
+                // Tùy chọn: Ẩn emoji picker sau khi chọn
+                // document.getElementById("emojiPickerContainer").style.display = "none";
+            });
+        }
+
+        // CHẠY KHI TRANG ĐÃ TẢI XONG
+        document.addEventListener('DOMContentLoaded', function() {
+            // Khởi tạo emoji picker
+            handleEmojiPicker();
+        });
     </script>
 </div>
